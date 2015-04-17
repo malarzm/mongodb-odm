@@ -28,7 +28,7 @@ class GH1011Documnet
     /** @ODM\Id */
     public $id;
 
-    /** @ODM\EmbedMany(targetDocument="GH1011Embedded") */
+    /** @ODM\EmbedMany(targetDocument="GH1011Embedded", strategy="set") */
     public $embeds;
 
     public function __construct()
