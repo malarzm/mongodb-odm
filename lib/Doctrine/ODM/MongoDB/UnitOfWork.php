@@ -29,6 +29,7 @@ use Doctrine\ODM\MongoDB\Event\LifecycleEventArgs;
 use Doctrine\ODM\MongoDB\Hydrator\HydratorFactory;
 use Doctrine\ODM\MongoDB\Mapping\ClassMetadata;
 use Doctrine\ODM\MongoDB\PersistentCollection;
+use Doctrine\ODM\MongoDB\PersistentCollectionInterface;
 use Doctrine\ODM\MongoDB\Persisters\PersistenceBuilder;
 use Doctrine\ODM\MongoDB\Proxy\Proxy;
 use Doctrine\ODM\MongoDB\Query\Query;
@@ -617,7 +618,7 @@ class UnitOfWork implements PropertyChangedListener
                 $class->reflFields[$name]->setValue($document, $value);
                 $actualData[$name] = $value;
             } elseif ((isset($mapping['association']) && $mapping['type'] === 'many')
-                && $value !== null && ! ($value instanceof PersistentCollection)) {
+                && $value !== null && ! ($value instanceof PersistentCollectionInterface)) {
                 // If $actualData[$name] is not a Collection then use an ArrayCollection.
                 if ( ! $value instanceof Collection) {
                     $value = new ArrayCollection($value);
@@ -695,7 +696,7 @@ class UnitOfWork implements PropertyChangedListener
                 /* At this PersistentCollection shouldn't be here, probably it
                  * was cloned and its ownership must be fixed
                  */
-                if ($actualValue instanceof PersistentCollection && $actualValue->getOwner() !== $document) {
+                if ($actualValue instanceof PersistentCollectionInterface && $actualValue->getOwner() !== $document) {
                     $actualData[$propName] = $this->fixPersistentCollectionOwnership($actualValue, $document, $class, $propName);
                     $actualValue = $actualData[$propName];
                 }
@@ -727,7 +728,7 @@ class UnitOfWork implements PropertyChangedListener
 
                 // skip if value has not changed
                 if ($orgValue === $actualValue) {
-                    if ($actualValue instanceof PersistentCollection) {
+                    if ($actualValue instanceof PersistentCollectionInterface) {
                         if (! $actualValue->isDirty() && ! $this->isCollectionScheduledForDeletion($actualValue)) {
                             // consider dirty collections as changed as well
                             continue;
@@ -770,7 +771,7 @@ class UnitOfWork implements PropertyChangedListener
                 // Persistent collection was exchanged with the "originally"
                 // created one. This can only mean it was cloned and replaced
                 // on another document.
-                if ($actualValue instanceof PersistentCollection && $actualValue->getOwner() !== $document) {
+                if ($actualValue instanceof PersistentCollectionInterface && $actualValue->getOwner() !== $document) {
                     $actualValue = $this->fixPersistentCollectionOwnership($actualValue, $document, $class, $propName);
                 }
 
@@ -783,7 +784,7 @@ class UnitOfWork implements PropertyChangedListener
                     if ($actualValue && $actualValue->isDirty() && CollectionHelper::usesSet($class->fieldMappings[$propName]['strategy'])) {
                         continue;
                     }
-                    if ($orgValue !== $actualValue && $orgValue instanceof PersistentCollection) {
+                    if ($orgValue !== $actualValue && $orgValue instanceof PersistentCollectionInterface) {
                         $this->scheduleCollectionDeletion($orgValue);
                     }
                     continue;
@@ -924,7 +925,7 @@ class UnitOfWork implements PropertyChangedListener
             return;
         }
 
-        if ($value instanceof PersistentCollection && $value->isDirty() && ($assoc['isOwningSide'] || isset($assoc['embedded']))) {
+        if ($value instanceof PersistentCollectionInterface && $value->isDirty() && ($assoc['isOwningSide'] || isset($assoc['embedded']))) {
             if ($topOrExistingDocument || CollectionHelper::usesSet($assoc['strategy'])) {
                 $this->scheduleCollectionUpdate($value);
             }
@@ -1197,7 +1198,7 @@ class UnitOfWork implements PropertyChangedListener
             foreach ($class->associationMappings as $fieldMapping) {
                 if (isset($fieldMapping['type']) && $fieldMapping['type'] === ClassMetadata::MANY) {
                     $value = $class->reflFields[$fieldMapping['fieldName']]->getValue($document);
-                    if ($value instanceof PersistentCollection) {
+                    if ($value instanceof PersistentCollectionInterface) {
                         $value->clearSnapshot();
                     }
                 }
@@ -1889,7 +1890,7 @@ class UnitOfWork implements PropertyChangedListener
                     } else {
                         $mergeCol = $prop->getValue($document);
 
-                        if ($mergeCol instanceof PersistentCollection && ! $mergeCol->isInitialized()) {
+                        if ($mergeCol instanceof PersistentCollectionInterface && ! $mergeCol->isInitialized()) {
                             /* Do not merge fields marked lazy that have not
                              * been fetched. Keep the lazy persistent collection
                              * of the managed copy.
@@ -2066,7 +2067,7 @@ class UnitOfWork implements PropertyChangedListener
         foreach ($associationMappings as $mapping) {
             $relatedDocuments = $class->reflFields[$mapping['fieldName']]->getValue($document);
             if ($relatedDocuments instanceof Collection || is_array($relatedDocuments)) {
-                if ($relatedDocuments instanceof PersistentCollection) {
+                if ($relatedDocuments instanceof PersistentCollectionInterface) {
                     // Unwrap so that foreach() does not initialize
                     $relatedDocuments = $relatedDocuments->unwrap();
                 }
@@ -2094,7 +2095,7 @@ class UnitOfWork implements PropertyChangedListener
             }
             $relatedDocuments = $class->reflFields[$mapping['fieldName']]->getValue($document);
             if (($relatedDocuments instanceof Collection || is_array($relatedDocuments))) {
-                if ($relatedDocuments instanceof PersistentCollection) {
+                if ($relatedDocuments instanceof PersistentCollectionInterface) {
                     // Unwrap so that foreach() does not initialize
                     $relatedDocuments = $relatedDocuments->unwrap();
                 }
@@ -2131,7 +2132,7 @@ class UnitOfWork implements PropertyChangedListener
                     continue;
                 }
 
-                if ($relatedDocuments instanceof PersistentCollection) {
+                if ($relatedDocuments instanceof PersistentCollectionInterface) {
                     // Unwrap so that foreach() does not initialize
                     $relatedDocuments = $relatedDocuments->unwrap();
                 }
@@ -2164,7 +2165,7 @@ class UnitOfWork implements PropertyChangedListener
             $relatedDocuments = $class->reflFields[$fieldName]->getValue($document);
 
             if ($relatedDocuments instanceof Collection || is_array($relatedDocuments)) {
-                if ($relatedDocuments instanceof PersistentCollection) {
+                if ($relatedDocuments instanceof PersistentCollectionInterface) {
                     if ($relatedDocuments->getOwner() !== $document) {
                         $relatedDocuments = $this->fixPersistentCollectionOwnership($relatedDocuments, $document, $class, $mapping['fieldName']);
                     }
@@ -2352,13 +2353,13 @@ class UnitOfWork implements PropertyChangedListener
      *  3) NOP if state is OK
      * Returned collection should be used from now on (only important with 2nd point)
      *
-     * @param PersistentCollection $coll
+     * @param PersistentCollectionInterface $coll
      * @param object $document
      * @param ClassMetadata $class
      * @param string $propName
-     * @return PersistentCollection
+     * @return PersistentCollectionInterface
      */
-    private function fixPersistentCollectionOwnership(PersistentCollection $coll, $document, ClassMetadata $class, $propName)
+    private function fixPersistentCollectionOwnership(PersistentCollectionInterface $coll, $document, ClassMetadata $class, $propName)
     {
         $owner = $coll->getOwner();
         if ($owner === null) { // cloned
@@ -2383,9 +2384,9 @@ class UnitOfWork implements PropertyChangedListener
      * INTERNAL:
      * Schedules a complete collection for removal when this UnitOfWork commits.
      *
-     * @param PersistentCollection $coll
+     * @param PersistentCollectionInterface $coll
      */
-    public function scheduleCollectionDeletion(PersistentCollection $coll)
+    public function scheduleCollectionDeletion(PersistentCollectionInterface $coll)
     {
         $oid = spl_object_hash($coll);
         unset($this->collectionUpdates[$oid]);
@@ -2398,10 +2399,10 @@ class UnitOfWork implements PropertyChangedListener
     /**
      * Checks whether a PersistentCollection is scheduled for deletion.
      *
-     * @param PersistentCollection $coll
+     * @param PersistentCollectionInterface $coll
      * @return boolean
      */
-    public function isCollectionScheduledForDeletion(PersistentCollection $coll)
+    public function isCollectionScheduledForDeletion(PersistentCollectionInterface $coll)
     {
         return isset($this->collectionDeletions[spl_object_hash($coll)]);
     }
@@ -2410,9 +2411,9 @@ class UnitOfWork implements PropertyChangedListener
      * INTERNAL:
      * Unschedules a collection from being deleted when this UnitOfWork commits.
      * 
-     * @param \Doctrine\ODM\MongoDB\PersistentCollection $coll
+     * @param \Doctrine\ODM\MongoDB\PersistentCollectionInterface $coll
      */
-    public function unscheduleCollectionDeletion(PersistentCollection $coll)
+    public function unscheduleCollectionDeletion(PersistentCollectionInterface $coll)
     {
         $oid = spl_object_hash($coll);
         if (isset($this->collectionDeletions[$oid])) {
@@ -2426,9 +2427,9 @@ class UnitOfWork implements PropertyChangedListener
      * INTERNAL:
      * Schedules a collection for update when this UnitOfWork commits.
      *
-     * @param PersistentCollection $coll
+     * @param PersistentCollectionInterface $coll
      */
-    public function scheduleCollectionUpdate(PersistentCollection $coll)
+    public function scheduleCollectionUpdate(PersistentCollectionInterface $coll)
     {
         $mapping = $coll->getMapping();
         if (CollectionHelper::usesSet($mapping['strategy'])) {
@@ -2448,9 +2449,9 @@ class UnitOfWork implements PropertyChangedListener
      * INTERNAL:
      * Unschedules a collection from being updated when this UnitOfWork commits.
      * 
-     * @param \Doctrine\ODM\MongoDB\PersistentCollection $coll
+     * @param \Doctrine\ODM\MongoDB\PersistentCollectionInterface $coll
      */
-    public function unscheduleCollectionUpdate(PersistentCollection $coll)
+    public function unscheduleCollectionUpdate(PersistentCollectionInterface $coll)
     {
         $oid = spl_object_hash($coll);
         if (isset($this->collectionUpdates[$oid])) {
@@ -2463,10 +2464,10 @@ class UnitOfWork implements PropertyChangedListener
     /**
      * Checks whether a PersistentCollection is scheduled for update.
      *
-     * @param PersistentCollection $coll
+     * @param PersistentCollectionInterface $coll
      * @return boolean
      */
-    public function isCollectionScheduledForUpdate(PersistentCollection $coll)
+    public function isCollectionScheduledForUpdate(PersistentCollectionInterface $coll)
     {
         return isset($this->collectionUpdates[spl_object_hash($coll)]);
     }
@@ -2477,7 +2478,7 @@ class UnitOfWork implements PropertyChangedListener
      * set of $document
      *
      * @param object $document
-     * @return PersistentCollection[]
+     * @return PersistentCollectionInterface[]
      */
     public function getVisitedCollections($document)
     {
@@ -2525,9 +2526,9 @@ class UnitOfWork implements PropertyChangedListener
      * unscheduled and atomic one is scheduled for update instead. This makes
      * calculating update data way easier.
      * 
-     * @param PersistentCollection $coll
+     * @param PersistentCollectionInterface $coll
      */
-    private function scheduleCollectionOwner(PersistentCollection $coll)
+    private function scheduleCollectionOwner(PersistentCollectionInterface $coll)
     {
         $document = $this->getOwningDocument($coll->getOwner());
         $this->hasScheduledCollections[spl_object_hash($document)][spl_object_hash($coll)] = $coll;
@@ -2690,9 +2691,9 @@ class UnitOfWork implements PropertyChangedListener
     /**
      * Initializes (loads) an uninitialized persistent collection of a document.
      *
-     * @param PersistentCollection $collection The collection to initialize.
+     * @param PersistentCollectionInterface $collection The collection to initialize.
      */
-    public function loadCollection(PersistentCollection $collection)
+    public function loadCollection(PersistentCollectionInterface $collection)
     {
         $this->getDocumentPersister(get_class($collection->getOwner()))->loadCollection($collection);
     }
@@ -2922,7 +2923,7 @@ class UnitOfWork implements PropertyChangedListener
     {
         if ($obj instanceof Proxy) {
             $obj->__load();
-        } elseif ($obj instanceof PersistentCollection) {
+        } elseif ($obj instanceof PersistentCollectionInterface) {
             $obj->initialize();
         }
     }
