@@ -28,7 +28,7 @@ use Doctrine\MongoDB\GridFSFile;
 use Doctrine\ODM\MongoDB\Event\LifecycleEventArgs;
 use Doctrine\ODM\MongoDB\Hydrator\HydratorFactory;
 use Doctrine\ODM\MongoDB\Mapping\ClassMetadata;
-use Doctrine\ODM\MongoDB\PersistentCollection;
+use Doctrine\ODM\MongoDB\PersistentCollection\DefaultPersistentCollectionFactory;
 use Doctrine\ODM\MongoDB\PersistentCollection\PersistentCollectionFactory;
 use Doctrine\ODM\MongoDB\PersistentCollection\PersistentCollectionInterface;
 use Doctrine\ODM\MongoDB\Persisters\PersistenceBuilder;
@@ -276,6 +276,14 @@ class UnitOfWork implements PropertyChangedListener
         $this->hydratorFactory = $hydratorFactory;
         $this->lifecycleEventManager = new LifecycleEventManager($dm, $this, $evm);
         $this->persistentCollectionFactory = new PersistentCollection\DefaultPersistentCollectionFactory($dm, $this);
+        $config = $dm->getConfiguration() ?: new Configuration();
+        $this->persistentCollectionFactory = new DefaultPersistentCollectionFactory(
+                $dm,
+                $this,
+                $config->getPersistentCollectionDir(),
+                $config->getPersistentCollectionNamespace(),
+                $config->getAutoGeneratePersistentCollectionClasses()
+        );
     }
 
     /**
