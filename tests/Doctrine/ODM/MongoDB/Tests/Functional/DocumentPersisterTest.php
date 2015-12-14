@@ -344,6 +344,17 @@ class DocumentPersisterTest extends \Doctrine\ODM\MongoDB\Tests\BaseTest
 
         $this->assertEquals($expected, $documentPersister->prepareQueryOrNewObj($value));
     }
+
+    public function testPrepareQueryOrNewObjConsidersFieldType()
+    {
+        $class = __NAMESPACE__ . '\DocumentPersisterTestDocument';
+        $documentPersister = $this->uow->getDocumentPersister($class);
+
+        $value = array('int' => '7');
+        $expected = array('int' => 7);
+
+        $this->assertSame($expected, $documentPersister->prepareQueryOrNewObj($value));
+    }
 }
 
 /** @ODM\Document */
@@ -373,6 +384,9 @@ class DocumentPersisterTestDocument
 
     /** @ODM\ReferenceOne(targetDocument="DocumentPersisterTestHashIdDocument") */
     public $complexRef;
+
+    /** @ODM\Int */
+    public $int;
 }
 
 /**
