@@ -26,6 +26,8 @@ use Doctrine\Common\Persistence\ObjectRepository;
 use Doctrine\ODM\MongoDB\DocumentRepository;
 use Doctrine\ODM\MongoDB\Mapping\ClassMetadataFactory;
 use Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver;
+use Doctrine\ODM\MongoDB\PersistentCollection\DefaultPersistentCollectionGenerator;
+use Doctrine\ODM\MongoDB\PersistentCollection\PersistentCollectionGenerator;
 use Doctrine\ODM\MongoDB\Repository\DefaultRepositoryFactory;
 use Doctrine\ODM\MongoDB\Repository\RepositoryFactory;
 
@@ -546,5 +548,30 @@ class Configuration extends \Doctrine\MongoDB\Configuration
         return isset($this->attributes['repositoryFactory'])
             ? $this->attributes['repositoryFactory']
             : new DefaultRepositoryFactory();
+    }
+
+    /**
+     * Set the persistent collection generator.
+     *
+     * @param PersistentCollectionGenerator $persistentCollectionGenerator
+     */
+    public function setPersistentCollectionGenerator(PersistentCollectionGenerator $persistentCollectionGenerator)
+    {
+        $this->attributes['persistentCollectionGenerator'] = $persistentCollectionGenerator;
+    }
+
+    /**
+     * Get the persistent collection generator.
+     *
+     * @return DefaultPersistentCollectionGenerator
+     */
+    public function getPersistentCollectionGenerator()
+    {
+        return isset($this->attributes['persistentCollectionGenerator'])
+            ? $this->attributes['persistentCollectionGenerator']
+            : new DefaultPersistentCollectionGenerator(
+                $this->attributes['persistentCollectionDir'],
+                $this->attributes['persistentCollectionNamespace']
+            );
     }
 }
