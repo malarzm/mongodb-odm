@@ -19,6 +19,7 @@
 
 namespace Doctrine\ODM\MongoDB\Types;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ODM\MongoDB\MongoDBException;
 
 /**
@@ -30,6 +31,9 @@ class HashType extends Type
 {
     public function convertToDatabaseValue($value)
     {
+        if ($value instanceof Collection) {
+            $value = $value->toArray();
+        }
         if ($value !== null && ! is_array($value)) {
             throw MongoDBException::invalidValueForType('Hash', array('array', 'null'), $value);
         }

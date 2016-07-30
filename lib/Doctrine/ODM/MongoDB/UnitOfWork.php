@@ -731,11 +731,16 @@ class UnitOfWork implements PropertyChangedListener
                 if ($orgValue === $actualValue) {
                     if ($actualValue instanceof PersistentCollectionInterface) {
                         if (! $actualValue->isDirty() && ! $this->isCollectionScheduledForDeletion($actualValue)) {
-                            // consider dirty collections as changed as well
+                            // consider dirty collections as changed
+                            continue;
+                        }
+                    } elseif (($class->fieldMappings[$propName]['type'] === 'collection' || $class->fieldMappings[$propName]['type'] === 'hash') && $actualValue instanceof Collection) {
+                        if ($orgValue->toArray() === $actualValue->toArray()) {
+                            // @todo this is obviously wrong as without isDirty these two will always be the same
                             continue;
                         }
                     } elseif ( ! (isset($class->fieldMappings[$propName]['file']) && $actualValue->isDirty())) {
-                        // but consider dirty GridFSFile instances as changed
+                        // consider dirty GridFSFile instances as changed
                         continue;
                     }
                 }

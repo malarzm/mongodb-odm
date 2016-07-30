@@ -28,4 +28,5 @@ abstract class AbstractField extends Annotation
     public $nullable = false;
     public $options = array();
     public $strategy;
+    public $collectionClass;
 }

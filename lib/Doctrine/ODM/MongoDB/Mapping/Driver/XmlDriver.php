@@ -154,6 +154,11 @@ class XmlDriver extends FileDriver
                     $mapping['notSaved'] = ('true' === (string) $attributes['not-saved']);
                 }
 
+                if (isset($mapping['collection-class'])) {
+                    $mapping['collectionClass'] = $mapping['collection-class'];
+                    unset($mapping['collection-class']);
+                }
+
                 if (isset($attributes['also-load'])) {
                     $mapping['alsoLoadFields'] = explode(',', $attributes['also-load']);
                 } elseif (isset($attributes['version'])) {

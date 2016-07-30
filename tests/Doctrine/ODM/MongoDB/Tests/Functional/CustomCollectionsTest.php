@@ -160,6 +160,35 @@ class CustomCollectionsTest extends \Doctrine\ODM\MongoDB\Tests\BaseTest
         $this->assertEquals($f2->getName(), $profile->getImages()[0]->getName());
         $this->assertEquals($f1->getName(), $profile->getImages()[1]->getName());
     }
+
+    public function testCollectionAndHash()
+    {
+        $d = new DocumentWithCustomCollection();
+        $d->collection[] = 'foo';
+        $d->hash['foo'] = 'foo';
+        $this->dm->persist($d);
+        $this->dm->flush();
+        $this->dm->clear();
+
+        $d = $this->dm->find(get_class($d), $d->id);
+        $this->assertInstanceOf(ArrayCollection::class, $d->collection);
+        $this->assertSame('foo', $d->collection[0]);
+        $this->assertInstanceOf(ArrayCollection::class, $d->hash);
+        $this->assertSame('foo', $d->hash['foo']);
+
+        $d->collection[] = 'bar';
+        $d->hash['bar'] = 'bar';
+        $this->uow->computeChangeSets();
+        var_dump($this->uow->getDocumentChangeSet($d));
+        $this->dm->flush();
+        $this->dm->clear();
+
+        $d = $this->dm->find(get_class($d), $d->id);
+        $this->assertSame('foo', $d->collection[0]);
+        $this->assertSame('bar', $d->collection[1]);
+        $this->assertSame('foo', $d->hash['foo']);
+        $this->assertSame('bar', $d->hash['bar']);
+    }
 }
 
 /**
@@ -203,12 +232,24 @@ class DocumentWithCustomCollection
      */
     public $inverseRefMany;
 
+    /**
+     * @ODM\Field(type="collection", collectionClass="Doctrine\Common\Collections\ArrayCollection")
+     */
+    public $collection;
+
+    /**
+     * @ODM\Field(type="hash", collectionClass="Doctrine\Common\Collections\ArrayCollection")
+     */
+    public $hash;
+
     public function __construct()
     {
         $this->boring = new ArrayCollection();
         $this->coll = new MyEmbedsCollection();
         $this->refMany = new MyDocumentsCollection();
         $this->inverseRefMany = new MyDocumentsCollection();
+        $this->collection = new ArrayCollection();
+        $this->hash = new ArrayCollection();
     }
 }
 

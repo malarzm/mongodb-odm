@@ -74,6 +74,7 @@
     <xs:attribute name="reference" type="xs:boolean" />
     <xs:attribute name="version" type="xs:boolean" />
     <xs:attribute name="lock" type="xs:boolean" />
+    <xs:attribute name="collection-class" type="xs:string" />
     <!-- index options -->
     <xs:attribute name="background" type="xs:boolean" />
     <xs:attribute name="drop-dups" type="xs:boolean" />

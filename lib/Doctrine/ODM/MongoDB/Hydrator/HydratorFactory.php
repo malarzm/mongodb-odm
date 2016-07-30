@@ -228,6 +228,19 @@ EOF
 
 
             } elseif ( ! isset($mapping['association'])) {
+                $additionalTransformation = '';
+                if (($mapping['type'] === 'collection' || $mapping['type'] === 'hash') && ! empty($mapping['collectionClass'])) {
+                    $additionalTransformation = sprintf(<<<EOF
+                \$coll = \$this->dm->getConfiguration()->getPersistentCollectionFactory()->create(\$this->dm, \$this->class->fieldMappings['%1\$s'])->unwrap();
+                foreach (\$return as \$k => \$v) {
+                    \$coll[\$k] = \$v;
+                }
+                \$return = \$coll;
+EOF
+                    ,
+                        $mapping['fieldName']
+                    );
+                }
                 $code .= sprintf(<<<EOF
 
         /** @Field(type="{$mapping['type']}") */
@@ -235,6 +248,7 @@ EOF
             \$value = \$data['%1\$s'];
             if (\$value !== null) {
                 %3\$s
+                %4\$s
             } else {
                 \$return = null;
             }
@@ -246,8 +260,10 @@ EOF
                     ,
                     $mapping['name'],
                     $mapping['fieldName'],
-                    Type::getType($mapping['type'])->closureToPHP()
+                    Type::getType($mapping['type'])->closureToPHP(),
+                    $additionalTransformation
                 );
+
             } elseif ($mapping['association'] === ClassMetadata::REFERENCE_ONE && $mapping['isOwningSide']) {
                 $code .= sprintf(<<<EOF
 

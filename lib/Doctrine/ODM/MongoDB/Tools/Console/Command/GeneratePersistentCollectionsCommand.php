@@ -94,7 +94,7 @@ EOT
                 $output->write(
                     sprintf('Processing document "<info>%s</info>"', $metadata->name) . PHP_EOL
                 );
-                foreach ($metadata->getAssociationNames() as $fieldName) {
+                foreach ($metadata->getFieldNames() as $fieldName) {
                     $mapping = $metadata->getFieldMapping($fieldName);
                     if (empty($mapping['collectionClass']) || isset($generated[$mapping['collectionClass']])) {
                         continue;
